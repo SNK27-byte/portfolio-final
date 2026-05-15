@@ -20,5 +20,5 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ## démarrer sass pour scss
 
-sass ./assets/style.scss .build/style.css --style=compressed --watch
+sass ./assets/style.scss ./build/style.css --style=compressed --watch
 
