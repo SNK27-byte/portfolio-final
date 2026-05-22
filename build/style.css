@@ -6,7 +6,6 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-snap-type: y mandatory;
 }
 
 body,
@@ -16,8 +15,38 @@ span,
 }
 
 .home-screen {
+  position: relative;
+  height: 100vh;
   min-height: 100vh;
-  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.home-screen .app-header {
+  position: absolute;
+  top: 8px;
+  left: 16px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  min-width: 120px;
+  height: 28px;
+  padding: 0 14px;
+  background: #d9d9d9;
+  border-radius: 14px;
+  font-size: 11px;
+}
+.home-screen .app-header img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.home-screen .container {
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -31,18 +60,38 @@ span,
   padding-bottom: 30px;
 }
 
-.main-search-bar {
-  margin: 0 auto;
+.main-search {
   width: 100%;
   max-width: 700px;
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.main-search-bar {
+  width: 100%;
   height: 54px;
   background: #d8d8d8;
   border-radius: 18px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #666;
+  justify-content: space-between;
+  padding: 0 20px;
+  gap: 16px;
+}
+
+.home-name {
   font-size: 16px;
+  font-weight: 600;
+  color: #2c2c2c;
+  white-space: nowrap;
+}
+
+.home-role {
+  font-size: 16px;
+  color: #666;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .search-icon {
@@ -89,9 +138,10 @@ span,
 
 .app-section {
   display: flex;
+  height: 100vh;
   min-height: 100vh;
-  scroll-snap-align: start;
   background: #fff;
+  overflow: hidden;
 }
 .app-section .sidebar {
   position: relative;
@@ -102,6 +152,7 @@ span,
   min-height: 100vh;
   padding: 8px 16px 32px;
   border-right: 1px solid rgba(0, 0, 0, 0.3);
+  background: #faf9f7;
 }
 .app-section .app-header {
   display: flex;
@@ -115,6 +166,7 @@ span,
   background: #d9d9d9;
   border-radius: 14px;
   align-self: flex-start;
+  margin-left: 0;
 }
 .app-section .app-header img {
   width: 20px;
@@ -127,73 +179,74 @@ span,
 .app-section .app-header span {
   font-size: 11px;
 }
-.app-section .sidebar-apps {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px 12px;
-  margin: 48px auto 0;
-  padding: 0 4px;
-  width: fit-content;
-  max-width: 100%;
-  justify-items: center;
-  overflow: visible;
+.app-section .content {
+  flex: 1;
+  background: #fff;
 }
-.app-section .sidebar-apps .app.is-hidden {
-  display: none !important;
-}
-.app-section .sidebar-apps .app {
-  overflow: visible;
-  min-height: 52px;
-}
-.app-section .sidebar-apps .app a {
-  width: 48px;
-  height: 48px;
-  padding: 4px;
-  box-sizing: content-box;
-}
-.app-section .sidebar-apps .app img {
+.app-section .google-menu {
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-  border-radius: 10px;
+  max-width: 260px;
+  margin: 36px auto 0;
+  padding: 18px 12px 22px;
+  background: #f0eeea;
+  border-radius: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
-.app-section .menu {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.app-section .google-menu__header {
+  margin-bottom: 14px;
+  padding: 0 8px;
+  text-align: center;
+}
+.app-section .google-menu__title {
+  color: #3c3c3c;
+  font-size: 15px;
+  font-weight: 500;
+}
+.app-section .google-menu__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 6px;
+}
+.app-section .google-menu__item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
-  margin-top: 0;
-  width: max-content;
-}
-.app-section .menu-item {
-  display: flex;
-  align-items: center;
-  gap: 25px;
-  color: #000;
+  gap: 8px;
+  padding: 12px 4px;
+  border-radius: 14px;
   text-decoration: none;
-  font-size: 28px;
+  transition: background 0.2s ease;
+}
+.app-section .google-menu__item.is-hidden {
+  display: none !important;
+}
+.app-section .google-menu__item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.app-section .google-menu__item img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+.app-section .google-menu__item span {
+  color: #444;
+  font-size: 11px;
   font-weight: 400;
-}
-.app-section .menu-item ion-icon {
-  font-size: 40px;
-}
-.app-section .content {
-  flex: 1;
-  border-right: 1px solid rgba(0, 0, 0, 0.3);
+  text-align: center;
+  line-height: 1.25;
 }
 
 .contact-section {
+  height: 100vh;
   min-height: 100vh;
-  scroll-snap-align: start;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 80px 24px;
+  padding: 40px 24px;
+  overflow-y: auto;
+  box-sizing: border-box;
   background: linear-gradient(160deg, #f8f4ee 0%, #ebe6df 50%, #f5f0ea 100%);
 }
 
@@ -283,9 +336,9 @@ span,
   color: #666;
 }
 .form-field textarea {
-  resize: vertical;
   min-height: 140px;
   padding-top: 22px;
+  resize: none;
 }
 .form-field label {
   position: absolute;
@@ -350,8 +403,16 @@ span,
   .apps-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .main-search {
-    padding: 0 20px;
+  .main-search-bar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 54px;
+    padding: 14px 20px;
+    justify-content: center;
+    gap: 8px;
+  }
+  .home-role {
+    text-align: center;
   }
   .logo-container img {
     width: 140px;

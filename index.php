@@ -11,13 +11,20 @@
 </head>
 <body>
     <section id="accueil" class="home-screen">
+        <div class="app-header">
+            <img src="images/LogoLP.png" alt="">
+            <span>Accueil</span>
+        </div>
         <div class="container">
             <div class="logo-container">
                 <img src="images/LogoLP.png" alt="LP Logo">
             </div>
 
             <div class="main-search">
-                <div class="main-search-bar">Rechercher avec google ou autre</div>
+                <div class="main-search-bar">
+                    <span class="home-name">Paul Leroy</span>
+                    <span class="home-role">Infographiste/ Web Designer</span>
+                </div>
             </div>
 
             <div class="apps-grid">
@@ -72,63 +79,12 @@
                 <span id="current-app-name"></span>
             </div>
 
-            <div class="sidebar-apps">
-                <div class="app" data-app-item="photoshop">
-                    <a href="#app" data-app="photoshop">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Adobe_Photoshop_CC_icon.svg" alt="Photoshop">
-                    </a>
+            <div class="google-menu">
+                <div class="google-menu__header">
+                    <span class="google-menu__title">Mes compétences</span>
                 </div>
-                <div class="app" data-app-item="illustrator">
-                    <a href="#app" data-app="illustrator">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/fb/Adobe_Illustrator_CC_icon.svg" alt="Illustrator">
-                    </a>
-                </div>
-                <div class="app" data-app-item="indesign">
-                    <a href="#app" data-app="indesign">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/48/Adobe_InDesign_CC_icon.svg" alt="InDesign">
-                    </a>
-                </div>
-                <div class="app" data-app-item="vscode">
-                    <a href="#app" data-app="vscode">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg" alt="VS Code">
-                    </a>
-                </div>
-                <div class="app" data-app-item="php">
-                    <a href="#app" data-app="php">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Php-logo.png/960px-Php-logo.png" alt="PHP">
-                    </a>
-                </div>
-                <div class="app" data-app-item="procreate">
-                    <a href="#app" data-app="procreate">
-                        <img src="images/Procreate.jpeg" alt="Procreate">
-                    </a>
-                </div>
-                <div class="app" data-app-item="procreate-dreams">
-                    <a href="#app" data-app="procreate-dreams">
-                        <img src="images/Procreate-Dreams.jpeg" alt="Procreate Dreams">
-                    </a>
-                </div>
-                <div class="app" data-app-item="figma">
-                    <a href="#app" data-app="figma">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg" alt="Figma">
-                    </a>
-                </div>
+                <div class="google-menu__grid" id="skills-grid"></div>
             </div>
-
-            <nav class="menu">
-                <a href="#accueil" class="menu-item">
-                    <ion-icon name="home-outline"></ion-icon>
-                    <span>Accueil</span>
-                </a>
-                <a href="#" class="menu-item">
-                    <ion-icon name="document-outline"></ion-icon>
-                    <span>Oeuvres</span>
-                </a>
-                <a href="#contact" class="menu-item">
-                    <ion-icon name="person-circle-outline"></ion-icon>
-                    <span>Contact</span>
-                </a>
-            </nav>
         </div>
 
         <div class="content"></div>
@@ -220,9 +176,8 @@
             appIcon.alt = app.name;
             appName.textContent = app.name;
 
-            document.querySelectorAll('#app .sidebar-apps .app').forEach((item) => {
-                const isCurrent = item.getAttribute('data-app-item') === id;
-                item.classList.toggle('is-hidden', isCurrent);
+            document.querySelectorAll('#skills-grid .google-menu__item').forEach((item) => {
+                item.classList.toggle('is-hidden', item.dataset.app === id);
             });
 
             if (updateHash) {
@@ -231,9 +186,100 @@
             }
 
             if (scrollToApp) {
-                appSection.scrollIntoView({ behavior: 'smooth' });
+                goToSlide(1);
             }
         }
+
+        const slides = [
+            document.getElementById('accueil'),
+            document.getElementById('app'),
+            document.getElementById('contact')
+        ];
+
+        let isSlideScrolling = false;
+        const SLIDE_SCROLL_MS = 900;
+
+        function getCurrentSlideIndex() {
+            const marker = window.scrollY + window.innerHeight * 0.35;
+            let index = 0;
+            slides.forEach((slide, i) => {
+                if (slide.offsetTop <= marker + 10) {
+                    index = i;
+                }
+            });
+            return index;
+        }
+
+        function goToSlide(index) {
+            if (index < 0 || index >= slides.length || isSlideScrolling) {
+                return false;
+            }
+            isSlideScrolling = true;
+            slides[index].scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                isSlideScrolling = false;
+            }, SLIDE_SCROLL_MS);
+            return true;
+        }
+
+        function contactAllowsInternalScroll(direction) {
+            const contact = slides[2];
+            if (getCurrentSlideIndex() !== 2) {
+                return false;
+            }
+            const maxScroll = contact.scrollHeight - contact.clientHeight;
+            if (maxScroll <= 0) {
+                return false;
+            }
+            if (direction > 0 && contact.scrollTop < maxScroll - 2) {
+                return true;
+            }
+            if (direction < 0 && contact.scrollTop > 2) {
+                return true;
+            }
+            return false;
+        }
+
+        window.addEventListener('wheel', (event) => {
+            if (isSlideScrolling) {
+                event.preventDefault();
+                return;
+            }
+
+            if (Math.abs(event.deltaY) < 15) {
+                return;
+            }
+
+            const direction = event.deltaY > 0 ? 1 : -1;
+
+            if (contactAllowsInternalScroll(direction)) {
+                return;
+            }
+
+            const current = getCurrentSlideIndex();
+            const next = current + direction;
+
+            if (next < 0 || next >= slides.length) {
+                return;
+            }
+
+            event.preventDefault();
+            goToSlide(next);
+        }, { passive: false });
+
+        const skillsGrid = document.getElementById('skills-grid');
+
+        Object.entries(apps).forEach(([id, app]) => {
+            const item = document.createElement('a');
+            item.href = '#app';
+            item.className = 'google-menu__item';
+            item.dataset.app = id;
+            item.innerHTML = `
+                <img src="${app.icon}" alt="${app.name}">
+                <span>${app.name}</span>
+            `;
+            skillsGrid.appendChild(item);
+        });
 
         document.querySelectorAll('[data-app]').forEach((link) => {
             link.addEventListener('click', (event) => {
@@ -249,8 +295,8 @@
             const cleanUrl = location.pathname;
 
             if (params.has('success') || params.has('error')) {
-                document.getElementById('contact').scrollIntoView();
                 history.replaceState(null, '', cleanUrl);
+                setTimeout(() => goToSlide(2), 50);
                 return;
             }
 
