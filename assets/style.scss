@@ -24,6 +24,7 @@ span,
     position: relative;
     height: 100vh;
     min-height: 100vh;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -150,9 +151,12 @@ span,
 .app-section {
     display: flex;
     height: 100vh;
-    min-height: 100vh;
-    background: #fff;
+    max-height: 100vh;
     overflow: hidden;
+    position: relative;
+    z-index: 1;
+    background: #fff;
+    flex-shrink: 0;
 
     .sidebar {
         position: relative;
@@ -160,10 +164,15 @@ span,
         flex-direction: column;
         align-items: center;
         width: 340px;
-        min-height: 100vh;
+        height: 100%;
+        max-height: 100vh;
+        flex-shrink: 0;
         padding: 8px 16px 32px;
         border-right: $border;
         background: #faf9f7;
+        overflow-y: auto;
+        overflow-x: hidden;
+        box-sizing: border-box;
     }
 
     .app-header {
@@ -196,7 +205,133 @@ span,
 
     .content {
         flex: 1;
+        min-width: 0;
+        height: 100%;
+        max-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 32px;
         background: #fff;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .works-carousel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        width: 100%;
+        max-width: 580px;
+        max-height: 100%;
+        margin: 0 auto;
+    }
+
+    .works-carousel__controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        width: 100%;
+        max-height: calc(100vh - 120px);
+    }
+
+    .works-carousel__viewport {
+        flex: 1;
+        width: 100%;
+        max-width: 480px;
+        max-height: calc(100vh - 160px);
+        overflow: hidden;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .works-carousel__track {
+        display: flex;
+        height: 100%;
+        transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .works-carousel__slide {
+        flex: 0 0 100%;
+        width: 100%;
+        height: min(360px, calc(100vh - 180px));
+        max-height: calc(100vh - 180px);
+    }
+
+    .works-carousel__slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        border-radius: 20px;
+    }
+
+    .works-carousel__placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f0eeea;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 20px;
+        color: $text-muted;
+        font-size: 16px;
+    }
+
+    .works-carousel__btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        flex-shrink: 0;
+        border: none;
+        border-radius: 50%;
+        background: #2c2c2c;
+        color: #fff;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease;
+
+        ion-icon {
+            font-size: 24px;
+        }
+
+        &:hover {
+            background: #444;
+            transform: scale(1.05);
+        }
+
+        &:active {
+            transform: scale(0.96);
+        }
+    }
+
+    .works-carousel__dots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .works-carousel__dot {
+        width: 8px;
+        height: 8px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: #d5d0c8;
+        cursor: pointer;
+        transition: width 0.25s ease, background 0.25s ease;
+
+        &.is-active {
+            width: 24px;
+            border-radius: 4px;
+            background: #2c2c2c;
+        }
     }
 
     .google-menu {
@@ -266,6 +401,9 @@ span,
 .contact-section {
     height: 100vh;
     min-height: 100vh;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -282,12 +420,6 @@ span,
 
 .contact-header {
     margin-bottom: 40px;
-    opacity: 0;
-    transform: translateY(24px);
-
-    &.is-visible {
-        animation: fadeInUp 0.7s ease forwards;
-    }
 
     h2 {
         font-size: 42px;
@@ -307,12 +439,6 @@ span,
     padding: 14px 18px;
     border-radius: 12px;
     font-size: 14px;
-    opacity: 0;
-    transform: translateY(16px);
-
-    &.is-visible {
-        animation: fadeInUp 0.6s ease forwards;
-    }
 
     &--success {
         background: rgba(46, 125, 72, 0.12);
@@ -333,12 +459,6 @@ span,
 
 .form-field {
     position: relative;
-    opacity: 0;
-    transform: translateY(20px);
-
-    &.is-visible {
-        animation: fadeInUp 0.6s ease forwards;
-    }
 
     input,
     textarea {
@@ -402,13 +522,7 @@ span,
     border: none;
     border-radius: 50px;
     cursor: pointer;
-    opacity: 0;
-    transform: translateY(20px);
     transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
-
-    &.is-visible {
-        animation: fadeInUp 0.6s ease forwards;
-    }
 
     ion-icon {
         font-size: 20px;
@@ -427,6 +541,66 @@ span,
 
     &:active {
         transform: translateY(-1px) scale(0.98);
+    }
+}
+
+.contact-socials {
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+
+    &__title {
+        font-size: 14px;
+        color: $text-muted;
+        margin-bottom: 16px;
+    }
+
+    &__buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}
+
+.social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 22px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: #2c2c2c;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
+
+    ion-icon {
+        font-size: 22px;
+    }
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    &--instagram:hover {
+        background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+        color: #fff;
+        border-color: transparent;
+    }
+
+    &--tiktok:hover {
+        background: #010101;
+        color: #fff;
+        border-color: transparent;
+    }
+
+    &--mail:hover {
+        background: #2c2c2c;
+        color: #fff;
+        border-color: transparent;
     }
 }
 
@@ -466,6 +640,28 @@ span,
 
     .app-section .sidebar {
         width: 260px;
+    }
+
+    .works-carousel {
+        max-width: 100%;
+        padding: 0 8px;
+    }
+
+    .works-carousel__controls {
+        gap: 12px;
+    }
+
+    .works-carousel__slide {
+        height: 280px;
+    }
+
+    .works-carousel__btn {
+        width: 40px;
+        height: 40px;
+
+        ion-icon {
+            font-size: 20px;
+        }
     }
 
     .contact-section {

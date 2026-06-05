@@ -87,7 +87,25 @@
             </div>
         </div>
 
-        <div class="content"></div>
+        <div class="content">
+            <div class="works-carousel">
+                <div class="works-carousel__controls">
+                    <button type="button" class="works-carousel__btn works-carousel__btn--prev" aria-label="Image précédente">
+                        <ion-icon name="chevron-back-outline"></ion-icon>
+                    </button>
+
+                    <div class="works-carousel__viewport">
+                        <div class="works-carousel__track" id="works-carousel-track"></div>
+                    </div>
+
+                    <button type="button" class="works-carousel__btn works-carousel__btn--next" aria-label="Image suivante">
+                        <ion-icon name="chevron-forward-outline"></ion-icon>
+                    </button>
+                </div>
+
+                <div class="works-carousel__dots" id="works-carousel-dots"></div>
+            </div>
+        </div>
     </section>
 
     <section id="contact" class="contact-section">
@@ -123,6 +141,24 @@
                     <ion-icon name="arrow-forward-outline"></ion-icon>
                 </button>
             </form>
+
+            <div class="contact-socials">
+                <p class="contact-socials__title">Mes réseaux</p>
+                <div class="contact-socials__buttons">
+                    <a href="https://www.instagram.com/paul_leroydesign/" class="social-btn social-btn--instagram" target="_blank" rel="noopener noreferrer">
+                        <ion-icon name="logo-instagram"></ion-icon>
+                        <span>Instagram</span>
+                    </a>
+                    <a href="https://www.tiktok.com/@paulleroydesign" class="social-btn social-btn--tiktok" target="_blank" rel="noopener noreferrer">
+                        <ion-icon name="logo-tiktok"></ion-icon>
+                        <span>TikTok</span>
+                    </a>
+                    <a href="mailto:leroypaul.design@gmail.com" class="social-btn social-btn--mail">
+                        <ion-icon name="mail-outline"></ion-icon>
+                        <span>Mail</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -130,35 +166,79 @@
         const apps = {
             photoshop: {
                 name: 'Photoshop',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/a/af/Adobe_Photoshop_CC_icon.svg'
+                icon: 'https://upload.wikimedia.org/wikipedia/commons/a/af/Adobe_Photoshop_CC_icon.svg',
+                works: [
+                    { alt: 'Photoshop — Image 1' },
+                    { alt: 'Photoshop — Image 2' },
+                    { alt: 'Photoshop — Image 3' },
+                    { alt: 'Photoshop — Image 4' }
+                ]
             },
             illustrator: {
                 name: 'Illustrator',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/f/fb/Adobe_Illustrator_CC_icon.svg'
+                icon: 'https://upload.wikimedia.org/wikipedia/commons/f/fb/Adobe_Illustrator_CC_icon.svg',
+                works: [
+                    { alt: 'Illustrator — Image 1' },
+                    { alt: 'Illustrator — Image 2' },
+                    { alt: 'Illustrator — Image 3' }
+                ]
             },
             indesign: {
                 name: 'InDesign',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/4/48/Adobe_InDesign_CC_icon.svg'
+                icon: 'https://upload.wikimedia.org/wikipedia/commons/4/48/Adobe_InDesign_CC_icon.svg',
+                works: [
+                    { alt: 'InDesign — Image 1' },
+                    { alt: 'InDesign — Image 2' },
+                    { alt: 'InDesign — Image 3' },
+                    { alt: 'InDesign — Image 4' }
+                ]
             },
             vscode: {
                 name: 'VS Code',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg'
+                icon: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg',
+                works: [
+                    { alt: 'VS Code — Image 1' },
+                    { alt: 'VS Code — Image 2' },
+                    { alt: 'VS Code — Image 3' }
+                ]
             },
             php: {
                 name: 'PHP',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Php-logo.png/960px-Php-logo.png'
+                icon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Php-logo.png/960px-Php-logo.png',
+                works: [
+                    { alt: 'PHP — Image 1' },
+                    { alt: 'PHP — Image 2' },
+                    { alt: 'PHP — Image 3' },
+                    { alt: 'PHP — Image 4' }
+                ]
             },
             procreate: {
                 name: 'Procreate',
-                icon: 'images/Procreate.jpeg'
+                icon: 'images/Procreate.jpeg',
+                works: [
+                    { alt: 'Procreate — Image 1' },
+                    { alt: 'Procreate — Image 2' },
+                    { alt: 'Procreate — Image 3' }
+                ]
             },
             'procreate-dreams': {
                 name: 'Procreate Dreams',
-                icon: 'images/Procreate-Dreams.jpeg'
+                icon: 'images/Procreate-Dreams.jpeg',
+                works: [
+                    { alt: 'Procreate Dreams — Image 1' },
+                    { alt: 'Procreate Dreams — Image 2' },
+                    { alt: 'Procreate Dreams — Image 3' },
+                    { alt: 'Procreate Dreams — Image 4' }
+                ]
             },
             figma: {
                 name: 'Figma',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg'
+                icon: 'https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg',
+                works: [
+                    { alt: 'Figma — Image 1' },
+                    { alt: 'Figma — Image 2' },
+                    { alt: 'Figma — Image 3' }
+                ]
             }
         };
 
@@ -179,6 +259,8 @@
             document.querySelectorAll('#skills-grid .google-menu__item').forEach((item) => {
                 item.classList.toggle('is-hidden', item.dataset.app === id);
             });
+
+            renderCarousel(id);
 
             if (updateHash) {
                 history.replaceState(null, '', '#' + id);
@@ -308,22 +390,62 @@
         initPageOnLoad();
         showApp('photoshop', false, false);
 
-        const contactSection = document.getElementById('contact');
-        const revealItems = contactSection.querySelectorAll('.contact-header, .form-field, .contact-submit, .contact-feedback');
+        const carouselTrack = document.getElementById('works-carousel-track');
+        const carouselDots = document.getElementById('works-carousel-dots');
+        let carouselIndex = 0;
 
-        const contactObserver = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    revealItems.forEach((item, index) => {
-                        item.style.animationDelay = `${index * 0.1}s`;
-                        item.classList.add('is-visible');
-                    });
-                    contactObserver.disconnect();
-                }
+        function renderCarousel(appId) {
+            const works = apps[appId]?.works || [];
+            carouselIndex = 0;
+
+            carouselTrack.innerHTML = works.map((work) => {
+                const content = work.src
+                    ? `<img src="${work.src}" alt="${work.alt}">`
+                    : `<div class="works-carousel__placeholder">${work.alt}</div>`;
+                return `<div class="works-carousel__slide">${content}</div>`;
+            }).join('');
+
+            carouselDots.innerHTML = '';
+            works.forEach((_, index) => {
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.className = 'works-carousel__dot' + (index === 0 ? ' is-active' : '');
+                dot.setAttribute('aria-label', 'Image ' + (index + 1));
+                dot.addEventListener('click', () => goToCarouselSlide(index));
+                carouselDots.appendChild(dot);
             });
-        }, { threshold: 0.2 });
 
-        contactObserver.observe(contactSection);
+            updateCarousel();
+        }
+
+        function updateCarousel() {
+            const slideCount = carouselTrack.querySelectorAll('.works-carousel__slide').length;
+            if (slideCount === 0) {
+                return;
+            }
+            carouselIndex = Math.min(carouselIndex, slideCount - 1);
+            carouselTrack.style.transform = `translateX(-${carouselIndex * 100}%)`;
+            carouselDots.querySelectorAll('.works-carousel__dot').forEach((dot, index) => {
+                dot.classList.toggle('is-active', index === carouselIndex);
+            });
+        }
+
+        function goToCarouselSlide(index) {
+            const slideCount = carouselTrack.querySelectorAll('.works-carousel__slide').length;
+            if (slideCount === 0) {
+                return;
+            }
+            carouselIndex = (index + slideCount) % slideCount;
+            updateCarousel();
+        }
+
+        document.querySelector('.works-carousel__btn--prev').addEventListener('click', () => {
+            goToCarouselSlide(carouselIndex - 1);
+        });
+
+        document.querySelector('.works-carousel__btn--next').addEventListener('click', () => {
+            goToCarouselSlide(carouselIndex + 1);
+        });
     </script>
 </body>
 </html>
