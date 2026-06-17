@@ -1,39 +1,6 @@
 <?php
-// array (tableau)
-// pour du post c'est $_POST
-// pour du get c'est $_GET
-// pour les fichiers c'est $_FILES
-
-// var_dump() c'est une fonction qui permet d'afficher le contenu d'une variable
-
-/*var_dump($_POST);
-var_dump($_FILES);
-
-var_dump($_POST['nom']);
-var_dump($_FILES['cover']['tmp_name']);
-
-$exUrl = "c:/wamp64/www/stock/admin/img/products/test.jpg";
-
-var_dump(basename($exUrl));
-
-$extensionPathInfo = pathinfo($_FILES['cover']['name'], PATHINFO_EXTENSION); // exemple retourne "jpg"
-$extension = strrchr($_FILES['cover']['name'],'.'); // exemple retourne ".jpg"
-
-var_dump($extension);
-
-$size = filesize($_FILES['cover']['tmp_name']);
-
-var_dump($size);*/
-
-    session_start();
-    // sécuritè pour la connexion
-    if(!isset($_SESSION['login']))
-    {
-        // si pas connecté via formulaire pas de $_SESSION['login'] donc redirection
-        header("LOCATION:index.php");
-        // pour l'optimisation du code (tjrs après un header("LOCATION:....");
-        exit();
-    }
+require __DIR__ . '/includes/upload-limits.php';
+require __DIR__ . '/includes/auth.php';
 
     // vérification de l'envoie du formulaire'
     if(isset($_POST['nom']))
@@ -95,38 +62,25 @@ var_dump($size);*/
             {
                 // récup des infos de l'image (nom, extension, type, taille)
                 $nomImage = basename($_FILES['cover']['name']);
-                $extension = strrchr($_FILES['cover']['name'],'.');
-                $mimeType = $_FILES['cover']['type'];
-                $size = filesize($_FILES['cover']['tmp_name']);
+                $extension = strtolower((string) strrchr($_FILES['cover']['name'], '.'));
+                $mimeType = detectUploadedMimeType($_FILES['cover']['tmp_name'], $_FILES['cover']['type']);
+                $size = (int) filesize($_FILES['cover']['tmp_name']);
 
                 // le dossier de destination (attention au dernier /)
                 $dossier = "../images/";
                 // initialisation de $errImg à 0 (pas d'erreur)
                 $errImg = 0;
 
-                // vérification des données de l'image
-                // vérification de l'extension
-                //création d'un tableau des extensions acceptées
-                $extensionsAcceptees = ['.jpg','.jpeg','.png'];
-                // in_array vérifie si l'extension ($extension) est dans le tableau ($extensionsAcceptees)
-                // ! => négation (si l'extension n'est pas dans le tableau, alors on peut pas l'uploader => $erreur)
-                if(!in_array($extension,$extensionsAcceptees))
-                {
+                $extensionsAcceptees = ['.jpg', '.jpeg', '.png'];
+                $mimeTypesAcceptes = ['image/jpeg', 'image/jpg', 'image/png'];
+
+                if (!in_array($extension, $extensionsAcceptees, true)) {
                     $errImg = 5;
-                }
-
-                // vérification du type MIME (type de fichier)
-                $mimeTypesAcceptes = ['image/jpeg','image/jpg','image/png'];
-                if(!in_array($mimeType,$mimeTypesAcceptes))
-                {
+                } elseif (!in_array($mimeType, $mimeTypesAcceptes, true)) {
                     $errImg = 6;
-                }
-
-                // vérification de la taille de l'image (en kilooctets)
-                // taille max 1Mo
-                $tailleMax = 1000000;
-                if($size > $tailleMax)
-                {
+                } elseif ($size <= 0) {
+                    $errImg = 4;
+                } elseif ($size > UPLOAD_MAX_BYTES) {
                     $errImg = 7;
                 }
 
@@ -169,14 +123,14 @@ var_dump($size);*/
                             ":descri"=>$description,
                             ":cover"=>$uniqnomSsafe
                         ]);
-                       if($extension == ".jpg")
-                       {
-                        header("LOCATION:redim.php?image=".$uniqnomSsafe);
-                        exit();
-                       }elseif($extension == ".png"){
-                        header("LOCATION:redimpng.php?image=".$uniqnomSsafe);
-                        exit();
+                       $extensionLower = strtolower($extension);
+                       if (in_array($extensionLower, ['.jpg', '.jpeg', '.png'], true)) {
+                           header('LOCATION:resizeCover.php?image=' . urlencode($uniqnomSsafe));
+                           exit();
                        }
+
+                       header('LOCATION:products.php?add=success');
+                       exit();
                     }else{
                         // il y a eu un problème au niveau du déplacement de l'image donc erreur avec indication
                         header("LOCATION:addProduct.php?errorImg=8");
@@ -184,15 +138,16 @@ var_dump($size);*/
                     }
 
                 }else{
-                    // il y a une erreur personnalisée dans l'upload de l'image
-                    header("LOCATION:addProduct.php?errorImg=".$errImg);
+                    $redirect = 'LOCATION:addProduct.php?errorImg=' . $errImg;
+                    if ($errImg === 7) {
+                        $redirect .= '&size=' . $size;
+                    }
+                    header($redirect);
                     exit();
                 }
 
             }else{
-                // $_FILES['cover']['error'] est différent de 0 donc il y a eu une erreur
-                // redirection vers la page d'ajout avec l'indication de l'erreur (en mode GET ?errorImg=1)
-                header("LOCATION:addProduct.php?errorImg=".$_FILES['cover']['error']);
+                header('LOCATION:addProduct.php?errorImg=' . (int) $_FILES['cover']['error']);
                 exit();
             }
 

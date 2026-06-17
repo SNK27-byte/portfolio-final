@@ -1,10 +1,5 @@
 <?php
-    session_start();
-    if(!isset($_SESSION['login']))
-    {
-        header("LOCATION:index.php");
-        exit();
-    }
+require __DIR__ . '/includes/auth.php';
 
     // vérification de l'envoie du formulaire
     if(isset($_POST['nom']))
@@ -69,7 +64,7 @@
 
                 if($errImg==0)
                 {
-                     // corriger les risques de caractères spéciaux dans le nom de fichier
+                    // corriger les risques de caractères spéciaux dans le nom de fichier
                     $nomImageLisible = strtr($nomImage, 'ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöùúûüýÿ','AAAAAACEEEEIIIIOOOOOUUUUYaaaaaaceeeeiiiioooooouuuuyy');
                     $nomImageSafe = preg_replace('/([^.a-z0-9]+)/i', '-', $nomImageLisible);
                     $uniqnomSsafe = uniqid().'-'.$nomImageSafe;
@@ -85,8 +80,8 @@
                         exit();
                     }
                     else{
-                       header("LOCATION:addSkills.php?error=8");
-                    exit();
+                        header("LOCATION:addSkills.php?error=8");
+                        exit();
                     }
 
                 }else{

@@ -1,23 +1,222 @@
+<?php
+require __DIR__ . '/config/connexion.php';
+
+if (!function_exists('portfolio_to_lower')) {
+    function portfolio_to_lower($value)
+    {
+        if (function_exists('mb_strtolower')) {
+            return mb_strtolower($value, 'UTF-8');
+        }
+        return strtolower($value);
+    }
+}
+
+if (!function_exists('portfolio_slug')) {
+    function portfolio_slug($name)
+    {
+        $slug = portfolio_to_lower(trim($name));
+        $slug = preg_replace('/\s+/', '-', $slug);
+
+        if ($slug === 'vs-code') {
+            return 'vscode';
+        }
+
+        if ($slug === 'procreate-dreams' || $slug === 'procreate-dream') {
+            return 'procreate-dreams';
+        }
+
+        return $slug;
+    }
+}
+
+if (!function_exists('portfolio_work_rank')) {
+    function portfolio_work_rank($work, $patterns)
+    {
+        $haystack = portfolio_to_lower($work['alt'] . ' ' . $work['src']);
+
+        foreach ($patterns as $index => $pattern) {
+            if (strpos($haystack, portfolio_to_lower($pattern)) !== false) {
+                return $index;
+            }
+        }
+
+        return PHP_INT_MAX;
+    }
+}
+
+if (!function_exists('portfolio_sort_works')) {
+    function portfolio_sort_works($works, $patterns)
+    {
+        if (empty($patterns) || count($works) < 2) {
+            return $works;
+        }
+
+        usort($works, function ($a, $b) use ($patterns) {
+            $rankA = portfolio_work_rank($a, $patterns);
+            $rankB = portfolio_work_rank($b, $patterns);
+            if ($rankA === $rankB) {
+                return 0;
+            }
+            return ($rankA < $rankB) ? -1 : 1;
+        });
+
+        return $works;
+    }
+}
+
+if (!function_exists('build_portfolio_apps')) {
+    function build_portfolio_apps(PDO $bdd)
+    {
+        $apps = array();
+
+        $skills = $bdd->query('SELECT id, nom, image FROM skills ORDER BY id ASC')->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($skills as $skill) {
+            if (empty($skill['image'])) {
+                continue;
+            }
+
+            $slug = portfolio_slug($skill['nom']);
+            $apps[$slug] = array(
+                'name' => $skill['nom'],
+                'icon' => 'images/' . $skill['image'],
+            );
+        }
+
+        $categories = $bdd->query('SELECT id, name, image FROM categories ORDER BY name ASC')->fetchAll(PDO::FETCH_ASSOC);
+        $products = $bdd->query(
+            'SELECT p.id, p.name, p.cover, p.category
+             FROM products p
+             ORDER BY p.date DESC, p.id DESC'
+        )->fetchAll(PDO::FETCH_ASSOC);
+
+        $productsByCategory = array();
+        foreach ($products as $product) {
+            $productsByCategory[$product['category']][] = $product;
+        }
+
+        $galleryByProduct = array();
+        $galleryStmt = $bdd->query('SELECT id_product, fichier FROM images ORDER BY id ASC');
+        while ($row = $galleryStmt->fetch(PDO::FETCH_ASSOC)) {
+            $galleryByProduct[$row['id_product']][] = $row['fichier'];
+        }
+
+        foreach ($categories as $category) {
+            if (empty($productsByCategory[$category['id']])) {
+                continue;
+            }
+
+            $slug = portfolio_slug($category['name']);
+            $works = array();
+
+            foreach ($productsByCategory[$category['id']] as $product) {
+                if (!empty($product['cover'])) {
+                    $works[] = array(
+                        'src' => 'images/' . $product['cover'],
+                        'alt' => $product['name'] . ' - Paul Leroy',
+                    );
+                }
+
+                if (!empty($galleryByProduct[$product['id']])) {
+                    foreach ($galleryByProduct[$product['id']] as $fichier) {
+                        if ($fichier === $product['cover']) {
+                            continue;
+                        }
+
+                        $works[] = array(
+                            'src' => 'images/' . $fichier,
+                            'alt' => $product['name'] . ' - Paul Leroy',
+                        );
+                    }
+                }
+            }
+
+            if (empty($works)) {
+                continue;
+            }
+
+            if ($slug === 'figma') {
+                $works = portfolio_sort_works($works, array('himalaya', 'couleur', 'liege', 'festival'));
+            }
+
+            if (!isset($apps[$slug])) {
+                $apps[$slug] = array(
+                    'name' => $category['name'],
+                    'icon' => 'images/' . $category['image'],
+                );
+            }
+
+            $apps[$slug]['name'] = $category['name'];
+            $apps[$slug]['icon'] = 'images/' . $category['image'];
+            $apps[$slug]['works'] = $works;
+        }
+
+        return $apps;
+    }
+}
+
+$portfolioApps = array();
+try {
+    $portfolioApps = build_portfolio_apps($bdd);
+} catch (Throwable $e) {
+    $portfolioApps = array();
+}
+
+$portfolioAppsJson = json_encode($portfolioApps, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);
+if ($portfolioAppsJson === false || $portfolioAppsJson === '[]') {
+    $portfolioAppsJson = '{}';
+}
+?>
 <!doctype html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="icon" href="images/LogoLP.png" type="image/png">
+    <link rel="apple-touch-icon" href="images/LogoLP.png">
     <link rel="stylesheet" href="build/style.css">
     <title>Portfolio</title>
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
-    <section id="accueil" class="home-screen">
-        <div class="app-header">
+    <nav class="site-nav">
+        <a href="#" class="site-nav__logo" id="nav-logo">
             <img src="images/LogoLP.png" alt="">
-            <span>Accueil</span>
+            <span>Paul Leroy</span>
+        </a>
+        <button type="button" id="burger" class="site-nav__burger" aria-label="Menu" aria-expanded="false">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+    </nav>
+
+    <div class="burger-overlay" id="burger-overlay"></div>
+
+    <aside class="burger-panel" id="burger-panel" aria-hidden="true">
+        <ul class="burger-panel__links">
+            <li><a href="#" data-nav-slide="0"><span>Accueil</span></a></li>
+            <li><a href="#" data-nav-slide="1"><span>Présentation</span></a></li>
+            <li><a href="#" data-nav-slide="2"><span>Mes oeuvres</span></a></li>
+            <li><a href="#" data-nav-slide="3"><span>Contact</span></a></li>
+        </ul>
+        <div class="burger-panel__footer">
+            <div class="burger-panel__socials">
+                <a href="https://www.instagram.com/paul_leroydesign/" target="_blank" rel="noopener noreferrer">Instagram</a>
+                <a href="https://www.tiktok.com/@paulleroydesign" target="_blank" rel="noopener noreferrer">TikTok</a>
+                <a href="mailto:leroypaul.design@gmail.com">Mail</a>
+            </div>
+            <span class="burger-panel__year">&copy; 2026</span>
         </div>
+    </aside>
+
+    <section id="accueil" class="home-screen">
         <div class="container">
             <div class="logo-container">
-                <img src="images/LogoLP.png" alt="LP Logo">
+                <div class="logo-stage">
+                    <img class="logo-final" src="images/LogoLP.png" alt="Paul Leroy">
+                </div>
             </div>
 
             <div class="main-search">
@@ -27,46 +226,41 @@
                 </div>
             </div>
 
-            <div class="apps-grid">
-                <div class="app">
-                    <a href="#app" data-app="photoshop">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Adobe_Photoshop_CC_icon.svg" alt="Photoshop">
-                    </a>
-                </div>
-                <div class="app">
-                    <a href="#app" data-app="illustrator">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/fb/Adobe_Illustrator_CC_icon.svg" alt="Illustrator">
-                    </a>
-                </div>
-                <div class="app">
-                    <a href="#app" data-app="indesign">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/48/Adobe_InDesign_CC_icon.svg" alt="InDesign">
-                    </a>
-                </div>
-                <div class="app">
-                    <a href="#app" data-app="vscode">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg" alt="VS Code">
-                    </a>
-                </div>
-                <div class="app">
-                    <a href="#app" data-app="php">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Php-logo.png/960px-Php-logo.png" alt="PHP">
-                    </a>
-                </div>
-                <div class="app">
-                    <a href="#app" data-app="procreate">
-                        <img src="images/Procreate.jpeg" alt="Procreate">
-                    </a>
-                </div>
-                <div class="app">
-                    <a href="#app" data-app="procreate-dreams">
-                        <img src="images/Procreate-Dreams.jpeg" alt="Procreate Dreams">
-                    </a>
-                </div>
-                <div class="app">
-                    <a href="#app" data-app="figma">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg" alt="Figma">
-                    </a>
+            <div class="apps-grid" id="home-apps-grid"></div>
+        </div>
+    </section>
+
+    <section id="presentation" class="presentation-section">
+        <div class="presentation-inner">
+            <header class="presentation-header">
+                <h2>Présentation</h2>
+                <p class="presentation-role">Infographiste / Web Designer</p>
+            </header>
+
+            <div class="presentation-layout">
+                <figure class="presentation-photo">
+                    <img src="images/paul-leroy.png" alt="Portrait de Paul Leroy">
+                </figure>
+
+                <div class="presentation-content">
+                <p>
+                    Je suis <strong>Paul Leroy</strong>, étudiant à l'EPSE en Belgique, passionné de web et de design.
+                </p>
+
+                <ul class="presentation-timeline">
+                    <li class="presentation-timeline__item">
+                        <span class="presentation-timeline__year">2024</span>
+                        <p class="presentation-timeline__text">Première année d'étude en tant qu'infographiste à l'EPSE</p>
+                    </li>
+                    <li class="presentation-timeline__item">
+                        <span class="presentation-timeline__year">2025</span>
+                        <p class="presentation-timeline__text">Deuxième année d'étude en tant qu'infographiste à l'EPSE</p>
+                    </li>
+                    <li class="presentation-timeline__item">
+                        <span class="presentation-timeline__year">En cours</span>
+                        <p class="presentation-timeline__text">Formation de web developper</p>
+                    </li>
+                </ul>
                 </div>
             </div>
         </div>
@@ -74,6 +268,10 @@
 
     <section id="app" class="app-section">
         <div class="sidebar">
+            <a href="#" class="sidebar__brand" id="sidebar-brand" aria-hidden="true" tabindex="-1">
+                <img src="images/LogoLP.png" alt="">
+                <span>Paul Leroy</span>
+            </a>
             <div class="app-header">
                 <img id="current-app-icon" src="" alt="">
                 <span id="current-app-name"></span>
@@ -81,14 +279,14 @@
 
             <div class="google-menu">
                 <div class="google-menu__header">
-                    <span class="google-menu__title">Mes compétences</span>
+                    <span class="google-menu__title">Mes oeuvres</span>
                 </div>
                 <div class="google-menu__grid" id="skills-grid"></div>
             </div>
         </div>
 
         <div class="content">
-            <div class="works-carousel">
+            <div class="works-carousel" id="works-carousel">
                 <div class="works-carousel__controls">
                     <button type="button" class="works-carousel__btn works-carousel__btn--prev" aria-label="Image précédente">
                         <ion-icon name="chevron-back-outline"></ion-icon>
@@ -109,6 +307,26 @@
     </section>
 
     <section id="contact" class="contact-section">
+        <aside class="contact-sidebar">
+            <p class="contact-sidebar__title">Mes réseaux</p>
+            <nav class="contact-sidebar__socials" aria-label="Réseaux sociaux">
+                <a href="https://www.instagram.com/paul_leroydesign/" class="contact-sidebar__social contact-sidebar__social--instagram" target="_blank" rel="noopener noreferrer">
+                    <ion-icon name="logo-instagram"></ion-icon>
+                    <span>Instagram</span>
+                </a>
+                <a href="https://www.tiktok.com/@paulleroydesign" class="contact-sidebar__social contact-sidebar__social--tiktok" target="_blank" rel="noopener noreferrer">
+                    <ion-icon name="logo-tiktok"></ion-icon>
+                    <span>TikTok</span>
+                </a>
+                <a href="mailto:leroypaul.design@gmail.com" class="contact-sidebar__social contact-sidebar__social--mail">
+                    <ion-icon name="mail-outline"></ion-icon>
+                    <span>Mail</span>
+                </a>
+            </nav>
+        </aside>
+
+        <div class="contact-main">
+        <div class="contact-layout">
         <div class="contact-inner">
             <div class="contact-header">
                 <h2>Contact</h2>
@@ -141,117 +359,42 @@
                     <ion-icon name="arrow-forward-outline"></ion-icon>
                 </button>
             </form>
+        </div>
 
-            <div class="contact-socials">
-                <p class="contact-socials__title">Mes réseaux</p>
-                <div class="contact-socials__buttons">
-                    <a href="https://www.instagram.com/paul_leroydesign/" class="social-btn social-btn--instagram" target="_blank" rel="noopener noreferrer">
-                        <ion-icon name="logo-instagram"></ion-icon>
-                        <span>Instagram</span>
-                    </a>
-                    <a href="https://www.tiktok.com/@paulleroydesign" class="social-btn social-btn--tiktok" target="_blank" rel="noopener noreferrer">
-                        <ion-icon name="logo-tiktok"></ion-icon>
-                        <span>TikTok</span>
-                    </a>
-                    <a href="mailto:leroypaul.design@gmail.com" class="social-btn social-btn--mail">
-                        <ion-icon name="mail-outline"></ion-icon>
-                        <span>Mail</span>
-                    </a>
-                </div>
-            </div>
+        <?php include __DIR__ . '/partials/footer.php'; ?>
+        </div>
         </div>
     </section>
 
     <script>
-        const apps = {
-            photoshop: {
-                name: 'Photoshop',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/a/af/Adobe_Photoshop_CC_icon.svg',
-                works: [
-                    { alt: 'Photoshop — Image 1' },
-                    { alt: 'Photoshop — Image 2' },
-                    { alt: 'Photoshop — Image 3' },
-                    { alt: 'Photoshop — Image 4' }
-                ]
-            },
-            illustrator: {
-                name: 'Illustrator',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/f/fb/Adobe_Illustrator_CC_icon.svg',
-                works: [
-                    { alt: 'Illustrator — Image 1' },
-                    { alt: 'Illustrator — Image 2' },
-                    { alt: 'Illustrator — Image 3' }
-                ]
-            },
-            indesign: {
-                name: 'InDesign',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/4/48/Adobe_InDesign_CC_icon.svg',
-                works: [
-                    { alt: 'InDesign — Image 1' },
-                    { alt: 'InDesign — Image 2' },
-                    { alt: 'InDesign — Image 3' },
-                    { alt: 'InDesign — Image 4' }
-                ]
-            },
-            vscode: {
-                name: 'VS Code',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg',
-                works: [
-                    { alt: 'VS Code — Image 1' },
-                    { alt: 'VS Code — Image 2' },
-                    { alt: 'VS Code — Image 3' }
-                ]
-            },
-            php: {
-                name: 'PHP',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Php-logo.png/960px-Php-logo.png',
-                works: [
-                    { alt: 'PHP — Image 1' },
-                    { alt: 'PHP — Image 2' },
-                    { alt: 'PHP — Image 3' },
-                    { alt: 'PHP — Image 4' }
-                ]
-            },
-            procreate: {
-                name: 'Procreate',
-                icon: 'images/Procreate.jpeg',
-                works: [
-                    { alt: 'Procreate — Image 1' },
-                    { alt: 'Procreate — Image 2' },
-                    { alt: 'Procreate — Image 3' }
-                ]
-            },
-            'procreate-dreams': {
-                name: 'Procreate Dreams',
-                icon: 'images/Procreate-Dreams.jpeg',
-                works: [
-                    { alt: 'Procreate Dreams — Image 1' },
-                    { alt: 'Procreate Dreams — Image 2' },
-                    { alt: 'Procreate Dreams — Image 3' },
-                    { alt: 'Procreate Dreams — Image 4' }
-                ]
-            },
-            figma: {
-                name: 'Figma',
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg',
-                works: [
-                    { alt: 'Figma — Image 1' },
-                    { alt: 'Figma — Image 2' },
-                    { alt: 'Figma — Image 3' }
-                ]
-            }
-        };
+        const apps = <?= $portfolioAppsJson ?>;
 
-        const appSection = document.getElementById('app');
         const appIcon = document.getElementById('current-app-icon');
         const appName = document.getElementById('current-app-name');
-        let currentApp = null;
+        const worksCarousel = document.getElementById('works-carousel');
+        const carouselViewport = worksCarousel ? worksCarousel.querySelector('.works-carousel__viewport') : null;
+        const carouselTrack = document.getElementById('works-carousel-track');
+        const carouselDots = document.getElementById('works-carousel-dots');
+        const SLIDE = { ACCUEIL: 0, PRESENTATION: 1, COMPETENCES: 2, CONTACT: 3 };
+        const slides = ['accueil', 'presentation', 'app', 'contact'].map((id) => document.getElementById(id));
+        let carouselIndex = 0;
+        let isSlideScrolling = false;
+
+        const hasCarousel = (id) => Boolean(apps[id] && apps[id].works && apps[id].works.length);
+        const defaultAppId = Object.keys(apps).find((id) => hasCarousel(id)) || null;
+
+        function handleAppLinkClick(event, id, fromHome) {
+            if (!hasCarousel(id)) {
+                return;
+            }
+            event.preventDefault();
+            showApp(id, fromHome);
+        }
 
         function showApp(id, scrollToApp, updateHash = true) {
             const app = apps[id];
-            if (!app) return;
+            if (!app || !hasCarousel(id)) return;
 
-            currentApp = id;
             appIcon.src = app.icon;
             appIcon.alt = app.name;
             appName.textContent = app.name;
@@ -260,64 +403,69 @@
                 item.classList.toggle('is-hidden', item.dataset.app === id);
             });
 
-            renderCarousel(id);
+            renderCarousel(app.works);
 
             if (updateHash) {
                 history.replaceState(null, '', '#' + id);
                 document.title = app.name + ' — Portfolio';
             }
 
-            if (scrollToApp) {
-                goToSlide(1);
-            }
+            if (scrollToApp) goToSlide(SLIDE.COMPETENCES);
         }
-
-        const slides = [
-            document.getElementById('accueil'),
-            document.getElementById('app'),
-            document.getElementById('contact')
-        ];
-
-        let isSlideScrolling = false;
-        const SLIDE_SCROLL_MS = 900;
 
         function getCurrentSlideIndex() {
             const marker = window.scrollY + window.innerHeight * 0.35;
-            let index = 0;
-            slides.forEach((slide, i) => {
-                if (slide.offsetTop <= marker + 10) {
-                    index = i;
-                }
+            return slides.reduce((index, slide, i) => (slide.offsetTop <= marker + 10 ? i : index), 0);
+        }
+
+        function setSkillsSlideLayout(active) {
+            document.body.classList.toggle('is-skills-slide', active);
+            const sidebarBrand = document.getElementById('sidebar-brand');
+            if (!sidebarBrand) return;
+            sidebarBrand.setAttribute('aria-hidden', active ? 'false' : 'true');
+            sidebarBrand.tabIndex = active ? 0 : -1;
+        }
+
+        function resetHomeState() {
+            history.replaceState(null, '', location.pathname);
+            document.title = 'Portfolio';
+            setSkillsSlideLayout(false);
+
+            document.querySelectorAll('#skills-grid .google-menu__item').forEach((item) => {
+                item.classList.remove('is-hidden');
             });
-            return index;
+
+            if (defaultAppId) showApp(defaultAppId, false, false);
         }
 
         function goToSlide(index) {
-            if (index < 0 || index >= slides.length || isSlideScrolling) {
-                return false;
-            }
+            if (index < 0 || index >= slides.length || isSlideScrolling) return;
             isSlideScrolling = true;
+
+            if (index === 0) {
+                resetHomeState();
+            }
+
+            setSkillsSlideLayout(index === SLIDE.COMPETENCES);
             slides[index].scrollIntoView({ behavior: 'smooth' });
             setTimeout(() => {
                 isSlideScrolling = false;
-            }, SLIDE_SCROLL_MS);
-            return true;
+            }, 900);
         }
 
-        function contactAllowsInternalScroll(direction) {
-            const contact = slides[2];
-            if (getCurrentSlideIndex() !== 2) {
-                return false;
-            }
-            const maxScroll = contact.scrollHeight - contact.clientHeight;
-            if (maxScroll <= 0) {
-                return false;
-            }
-            if (direction > 0 && contact.scrollTop < maxScroll - 2) {
-                return true;
-            }
-            if (direction < 0 && contact.scrollTop > 2) {
-                return true;
+        function slideAllowsInternalScroll(slideIndex, direction) {
+            const slide = slides[slideIndex];
+            if (!slide) return false;
+            const maxScroll = slide.scrollHeight - slide.clientHeight;
+            if (maxScroll <= 0) return false;
+            if (direction > 0) return slide.scrollTop < maxScroll - 2;
+            return slide.scrollTop > 2;
+        }
+
+        function currentSlideAllowsInternalScroll(direction) {
+            const index = getCurrentSlideIndex();
+            if (index === SLIDE.PRESENTATION || index === SLIDE.CONTACT) {
+                return slideAllowsInternalScroll(index, direction);
             }
             return false;
         }
@@ -327,124 +475,307 @@
                 event.preventDefault();
                 return;
             }
-
-            if (Math.abs(event.deltaY) < 15) {
-                return;
-            }
+            if (Math.abs(event.deltaY) < 15) return;
 
             const direction = event.deltaY > 0 ? 1 : -1;
+            if (currentSlideAllowsInternalScroll(direction)) return;
 
-            if (contactAllowsInternalScroll(direction)) {
-                return;
-            }
-
-            const current = getCurrentSlideIndex();
-            const next = current + direction;
-
-            if (next < 0 || next >= slides.length) {
-                return;
-            }
+            const next = getCurrentSlideIndex() + direction;
+            if (next < 0 || next >= slides.length) return;
 
             event.preventDefault();
             goToSlide(next);
         }, { passive: false });
 
-        const skillsGrid = document.getElementById('skills-grid');
-
         Object.entries(apps).forEach(([id, app]) => {
-            const item = document.createElement('a');
-            item.href = '#app';
-            item.className = 'google-menu__item';
-            item.dataset.app = id;
-            item.innerHTML = `
+            const homeGrid = document.getElementById('home-apps-grid');
+            const skillsGridEl = document.getElementById('skills-grid');
+            const clickable = hasCarousel(id);
+
+            const appDiv = document.createElement('div');
+            appDiv.className = 'app' + (clickable ? '' : ' app--display-only');
+
+            const homeLink = document.createElement('a');
+            homeLink.href = clickable ? '#app' : '#';
+            homeLink.dataset.app = id;
+            if (!clickable) {
+                homeLink.setAttribute('aria-disabled', 'true');
+            } else {
+                homeLink.addEventListener('click', (event) => handleAppLinkClick(event, id, true));
+            }
+            homeLink.innerHTML = `
                 <img src="${app.icon}" alt="${app.name}">
-                <span>${app.name}</span>
+                <span class="app__label">${app.name}</span>
             `;
-            skillsGrid.appendChild(item);
+            appDiv.appendChild(homeLink);
+            homeGrid.appendChild(appDiv);
+
+            if (clickable && skillsGridEl) {
+                const skillLink = document.createElement('a');
+                skillLink.href = '#app';
+                skillLink.className = 'google-menu__item';
+                skillLink.dataset.app = id;
+                skillLink.addEventListener('click', (event) => handleAppLinkClick(event, id, false));
+                skillLink.innerHTML = `
+                    <img src="${app.icon}" alt="${app.name}">
+                    <span>${app.name}</span>
+                `;
+                skillsGridEl.appendChild(skillLink);
+            }
         });
 
-        document.querySelectorAll('[data-app]').forEach((link) => {
-            link.addEventListener('click', (event) => {
-                event.preventDefault();
-                const id = link.dataset.app;
-                const fromHome = link.closest('#accueil') !== null;
-                showApp(id, fromHome);
-            });
-        });
+        function getCarouselMaxBounds() {
+            const content = document.querySelector('.app-section .content');
+            const contentWidth = content?.clientWidth ?? window.innerWidth;
 
-        function initPageOnLoad() {
-            const params = new URLSearchParams(location.search);
-            const cleanUrl = location.pathname;
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                return {
+                    maxW: Math.max(Math.min(contentWidth - 40, 380), 220),
+                    maxH: Math.max(Math.min(window.innerHeight * 0.52, 420), 200),
+                };
+            }
 
-            if (params.has('success') || params.has('error')) {
-                history.replaceState(null, '', cleanUrl);
-                setTimeout(() => goToSlide(2), 50);
+            if (window.matchMedia('(max-width: 1024px)').matches) {
+                return {
+                    maxW: Math.max(Math.min(contentWidth - 100, 500), 240),
+                    maxH: Math.max(Math.min(window.innerHeight - 120, 520), 200),
+                };
+            }
+
+            return {
+                maxW: Math.max(Math.min(contentWidth - 120, 820), 320),
+                maxH: Math.max(Math.min(window.innerHeight - 130, 640), 240),
+            };
+        }
+
+        function fitCarouselViewport() {
+            if (!carouselViewport || !carouselTrack.children.length) return;
+
+            const slide = carouselTrack.children[carouselIndex];
+            const img = slide?.querySelector('img');
+            if (!img) {
+                carouselViewport.style.width = '';
+                carouselViewport.style.height = '';
+                carouselViewport.style.minHeight = '';
+                carouselViewport.style.maxHeight = '';
                 return;
             }
 
-            history.replaceState(null, '', cleanUrl);
+            const applyFit = () => {
+                const { naturalWidth, naturalHeight } = img;
+                if (!naturalWidth || !naturalHeight) return;
+
+                const { maxW, maxH } = getCarouselMaxBounds();
+                const ratio = naturalWidth / naturalHeight;
+
+                let width = maxW;
+                let height = width / ratio;
+
+                if (height > maxH) {
+                    height = maxH;
+                    width = height * ratio;
+                }
+
+                const fitWidth = Math.round(width);
+                const fitHeight = Math.round(height);
+
+                carouselViewport.style.width = fitWidth + 'px';
+                carouselViewport.style.height = fitHeight + 'px';
+                carouselViewport.style.minHeight = fitHeight + 'px';
+                carouselViewport.style.maxHeight = fitHeight + 'px';
+            };
+
+            if (img.complete && img.naturalWidth) {
+                applyFit();
+            } else {
+                img.addEventListener('load', applyFit, { once: true });
+            }
+        }
+
+        function renderCarousel(works) {
+            const hasWorks = works && works.length > 0;
+            worksCarousel.classList.toggle('is-hidden', !hasWorks);
+            if (!hasWorks) {
+                carouselTrack.innerHTML = '';
+                carouselDots.innerHTML = '';
+                if (carouselViewport) {
+                    carouselViewport.style.width = '';
+                    carouselViewport.style.height = '';
+                    carouselViewport.style.minHeight = '';
+                    carouselViewport.style.maxHeight = '';
+                }
+                return;
+            }
+
+            carouselIndex = 0;
+            carouselTrack.innerHTML = works.map((work) => `
+                <div class="works-carousel__slide">
+                    ${work.src
+                        ? `<img src="${work.src}" alt="${work.alt}">`
+                        : `<div class="works-carousel__placeholder">${work.alt}</div>`}
+                </div>
+            `).join('');
+
+            carouselDots.innerHTML = works.map((_, index) => `
+                <button type="button" class="works-carousel__dot${index === 0 ? ' is-active' : ''}" aria-label="Image ${index + 1}" data-index="${index}"></button>
+            `).join('');
+
+            updateCarousel();
+            fitCarouselViewport();
+        }
+
+        function updateCarousel() {
+            const count = carouselTrack.children.length;
+            if (!count) return;
+            carouselIndex = Math.min(carouselIndex, count - 1);
+            carouselTrack.style.transform = `translateX(-${carouselIndex * 100}%)`;
+            [...carouselDots.children].forEach((dot, index) => {
+                dot.classList.toggle('is-active', index === carouselIndex);
+            });
+            fitCarouselViewport();
+        }
+
+        function goToCarouselSlide(index) {
+            const count = carouselTrack.children.length;
+            if (!count) return;
+            carouselIndex = (index + count) % count;
+            updateCarousel();
+        }
+
+        const carouselPrevBtn = document.querySelector('.works-carousel__btn--prev');
+        const carouselNextBtn = document.querySelector('.works-carousel__btn--next');
+
+        if (carouselPrevBtn) {
+            carouselPrevBtn.addEventListener('click', () => goToCarouselSlide(carouselIndex - 1));
+        }
+        if (carouselNextBtn) {
+            carouselNextBtn.addEventListener('click', () => goToCarouselSlide(carouselIndex + 1));
+        }
+        if (carouselDots) {
+            carouselDots.addEventListener('click', (event) => {
+                const dot = event.target.closest('[data-index]');
+                if (dot) goToCarouselSlide(Number(dot.dataset.index));
+            });
+        }
+
+        const params = new URLSearchParams(location.search);
+        if (params.has('success') || params.has('error')) {
+            history.replaceState(null, '', location.pathname);
+            setTimeout(() => goToSlide(SLIDE.CONTACT), 50);
+        } else {
+            history.replaceState(null, '', location.pathname);
             window.scrollTo(0, 0);
             document.title = 'Portfolio';
         }
 
-        initPageOnLoad();
-        showApp('photoshop', false, false);
+        if (defaultAppId) showApp(defaultAppId, false, false);
 
-        const carouselTrack = document.getElementById('works-carousel-track');
-        const carouselDots = document.getElementById('works-carousel-dots');
-        let carouselIndex = 0;
-
-        function renderCarousel(appId) {
-            const works = apps[appId]?.works || [];
-            carouselIndex = 0;
-
-            carouselTrack.innerHTML = works.map((work) => {
-                const content = work.src
-                    ? `<img src="${work.src}" alt="${work.alt}">`
-                    : `<div class="works-carousel__placeholder">${work.alt}</div>`;
-                return `<div class="works-carousel__slide">${content}</div>`;
-            }).join('');
-
-            carouselDots.innerHTML = '';
-            works.forEach((_, index) => {
-                const dot = document.createElement('button');
-                dot.type = 'button';
-                dot.className = 'works-carousel__dot' + (index === 0 ? ' is-active' : '');
-                dot.setAttribute('aria-label', 'Image ' + (index + 1));
-                dot.addEventListener('click', () => goToCarouselSlide(index));
-                carouselDots.appendChild(dot);
-            });
-
-            updateCarousel();
-        }
-
-        function updateCarousel() {
-            const slideCount = carouselTrack.querySelectorAll('.works-carousel__slide').length;
-            if (slideCount === 0) {
-                return;
-            }
-            carouselIndex = Math.min(carouselIndex, slideCount - 1);
-            carouselTrack.style.transform = `translateX(-${carouselIndex * 100}%)`;
-            carouselDots.querySelectorAll('.works-carousel__dot').forEach((dot, index) => {
-                dot.classList.toggle('is-active', index === carouselIndex);
-            });
-        }
-
-        function goToCarouselSlide(index) {
-            const slideCount = carouselTrack.querySelectorAll('.works-carousel__slide').length;
-            if (slideCount === 0) {
-                return;
-            }
-            carouselIndex = (index + slideCount) % slideCount;
-            updateCarousel();
-        }
-
-        document.querySelector('.works-carousel__btn--prev').addEventListener('click', () => {
-            goToCarouselSlide(carouselIndex - 1);
+        let carouselResizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(carouselResizeTimer);
+            carouselResizeTimer = setTimeout(fitCarouselViewport, 120);
         });
 
-        document.querySelector('.works-carousel__btn--next').addEventListener('click', () => {
-            goToCarouselSlide(carouselIndex + 1);
+        function startLogoFloat(img) {
+            const amplitude = 5;
+            const period = 2800;
+            const start = performance.now();
+
+            const tick = (now) => {
+                const y = Math.sin(((now - start) / period) * Math.PI * 2) * amplitude;
+                img.style.transform = `translate3d(0, ${y.toFixed(4)}px, 0)`;
+                requestAnimationFrame(tick);
+            };
+
+            requestAnimationFrame(tick);
+        }
+
+        function initHomeLogoAnimation() {
+            const stage = document.querySelector('.logo-stage');
+            const img = stage?.querySelector('.logo-final');
+            if (!stage || !img) return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            const startIntro = () => {
+                stage.classList.add('logo-intro');
+                img.classList.add('logo-intro');
+
+                img.addEventListener('animationend', (event) => {
+                    if (event.animationName !== 'logo-reveal') return;
+                    img.classList.remove('logo-intro');
+                    stage.classList.remove('logo-intro');
+                    img.style.willChange = 'transform';
+                    startLogoFloat(img);
+                }, { once: true });
+            };
+
+            if (img.complete) {
+                startIntro();
+            } else {
+                img.addEventListener('load', startIntro, { once: true });
+            }
+        }
+
+        initHomeLogoAnimation();
+
+        const burger = document.getElementById('burger');
+        const burgerPanel = document.getElementById('burger-panel');
+        const burgerOverlay = document.getElementById('burger-overlay');
+
+        function openMenu() {
+            burger.classList.add('open');
+            burgerPanel.classList.add('open');
+            burgerOverlay.classList.add('open');
+            burger.setAttribute('aria-expanded', 'true');
+            burgerPanel.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('menu-open');
+        }
+
+        function closeMenu() {
+            burger.classList.remove('open');
+            burgerPanel.classList.remove('open');
+            burgerOverlay.classList.remove('open');
+            burger.setAttribute('aria-expanded', 'false');
+            burgerPanel.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('menu-open');
+        }
+
+        burger.addEventListener('click', () => {
+            burger.classList.contains('open') ? closeMenu() : openMenu();
+        });
+
+        burgerOverlay.addEventListener('click', closeMenu);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeMenu();
+        });
+
+        document.querySelectorAll('[data-nav-slide]').forEach((link) => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                closeMenu();
+                goToSlide(Number(link.dataset.navSlide));
+            });
+        });
+
+        function goHome() {
+            closeMenu();
+            if (getCurrentSlideIndex() === 0) {
+                resetHomeState();
+                window.scrollTo(0, 0);
+            } else {
+                goToSlide(0);
+            }
+        }
+
+        document.getElementById('nav-logo').addEventListener('click', (event) => {
+            event.preventDefault();
+            goHome();
+        });
+
+        document.getElementById('sidebar-brand').addEventListener('click', (event) => {
+            event.preventDefault();
+            goHome();
         });
     </script>
 </body>

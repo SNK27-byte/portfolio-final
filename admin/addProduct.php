@@ -1,25 +1,9 @@
 <?php
-    session_start();
-    if(!isset($_SESSION['login']))
-    {
-        header("LOCATION:index.php");
-        exit();
-    }
+require __DIR__ . '/includes/auth.php';
+$pageTitle = 'Stock - Administration - Ajouter un produit';
+require __DIR__ . '/partials/head.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="style.css">
-    <title>Stock - Administration - Ajouter un produit</title>
-</head>
-<body>
-    <?php
-        include("partials/nav.php");
-    ?>
+    <?php include('partials/nav.php'); ?>
     <div class="container-fluid">
         <h1>Ajouter un produit</h1>
         <a href="products.php" class="btn btn-secondary my-2">Retour</a>
@@ -30,13 +14,25 @@
                     // si tu vois dans l'URL ?error=123 alors c'est que tu as une erreur
                     if(isset($_GET['error']))
                     {
-                        // alors j'affiche un message d'erreur
-                        echo "<div class='alert alert-danger'>Une erreur est survenue (code erreur: ".$_GET['error'].")</div>";
+                        $fieldErrors = [
+                            1 => 'Le nom du produit est obligatoire.',
+                            2 => 'La date est obligatoire.',
+                            3 => 'La description est obligatoire.',
+                            4 => 'La catégorie est obligatoire.',
+                        ];
+                        $errorCode = (int) $_GET['error'];
+                        $message = $fieldErrors[$errorCode] ?? "Une erreur est survenue (code erreur: {$errorCode}).";
+                        echo "<div class='alert alert-danger'>{$message}</div>";
                     }
 
                     if(isset($_GET['errorImg']))
                     {
-                        echo "<div class='alert alert-danger'>Une erreur est survenue au niveau de l'image(code erreur: ".$_GET['errorImg'].")</div>";
+                        $errorImg = (int) $_GET['errorImg'];
+                        $message = uploadErrorMessage($errorImg);
+                        if ($errorImg === 7 && isset($_GET['size']) && is_numeric($_GET['size'])) {
+                            $message .= ' Taille envoyée : ' . formatBytes((int) $_GET['size']) . '.';
+                        }
+                        echo "<div class='alert alert-danger'>{$message}</div>";
                     }
                 ?>
                 <div class="form-group my-3">
@@ -53,8 +49,8 @@
                 </div>
                 <div class="form-group my-3">
                     <label for="cover">Image de couverture</label>
-                    <input type="hidden" name="MAX_FILE_SIZE" value="1000000">
-                    <input type="file" id="cover" name="cover" class="form-control">
+                    <input type="file" id="cover" name="cover" class="form-control" accept="image/jpeg,image/png,.jpg,.jpeg,.png">
+                    <small class="text-muted">JPG ou PNG, <?= uploadMaxSizeLabel() ?> maximum.</small>
                 </div>
                 <div class="form-group my-3">
                     <label for="categorie">Catégorie</label>
@@ -78,4 +74,3 @@
     </div>
 </body>
 </html>
-

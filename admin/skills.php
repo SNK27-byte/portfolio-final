@@ -13,22 +13,22 @@
     {
         $id = $_GET['delete'];
         // vérifier si l'id existe bien dans la bdd
-        $verif = $bdd->prepare("SELECT * FROM skills where id=?");
-        $verif-> execute([$id]);
+        $verif = $bdd->prepare("SELECT * FROM skills WHERE id=?");
+        $verif->execute([$id]);
         $don = $verif->fetch();
         if(!$don)
         {
             header("LOCATION:skills.php");
             exit();
         }
-    //supprimer le fichier
-    unlink('../images/'.$don['image']);
 
+        //supprimer le fichier image
+        unlink('../images/'.$don['image']);
 
-    $del = $bdd->prepare("DELETE FROM skills WHERE id=?");
-    $del->execute([$id]);
-    header("LOCATION:skills.php?delsuccess=".$id);
-    exit();
+        $del = $bdd->prepare("DELETE FROM skills WHERE id=?");
+        $del->execute([$id]);
+        header("LOCATION:skills.php?delsuccess=".$id);
+        exit();
     }
 ?>
 <!DOCTYPE html>
@@ -57,6 +57,10 @@
             {
                  echo "<div class='alert alert-warning'>Vous avez bien modifié la compétence n°".$_GET['update']." à la base de données</div>";
             }
+            if(isset($_GET['delsuccess']) && is_numeric($_GET['delsuccess']))
+            {
+                 echo "<div class='alert alert-danger'>Vous avez bien supprimé la compétence n°".$_GET['delsuccess']." à la base de données</div>";
+            }
         ?>
         <table class="table table-striped">
 
@@ -78,7 +82,6 @@
                             echo '<td>'.$donSkill['id'].'</td>';
                             echo '<td>'.$donSkill['nom'].'</td>';
                             echo '<td>';
-                                echo '<a href="updateCategory.php?id='.$donSkill['id'].'" class="btn btn-warning">Modifier</a>';
                                 echo '<button type="button" class="btn btn-danger mx-2" data-bs-toggle="modal" data-bs-target="#deleteModal'.$donSkill['id'].'">
   supprimer
 </button>';
@@ -94,7 +97,7 @@
                                         echo '</div>';
                                         echo ' <div class="modal-footer">';
                                             echo ' <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Ne pas supprimer</button>';
-                                            echo '<a href="categories.php?delete='.$donSkill['id'].'" class="btn btn-danger mx-2">Supprimer</a>';
+                                            echo '<a href="skills.php?delete='.$donSkill['id'].'" class="btn btn-danger mx-2">Supprimer</a>';
                                         echo '</div>';
                                     echo '</div>';
                                 echo '</div>';

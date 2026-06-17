@@ -1,11 +1,6 @@
 <?php
-session_start();
-// sécuritè pour la connexion
-if(!isset($_SESSION['login']))
-{
-    header("LOCATION:index.php");
-    exit();
-}
+require __DIR__ . '/includes/auth.php';
+require __DIR__ . '/includes/upload-limits.php';
 
 // besoin de l'id pour la bdd et fonctionner
 if(!isset($_GET['id']) && !is_numeric($_GET['id']))
@@ -77,33 +72,23 @@ if(isset($_POST['nom']))
             // update avec image
             // récup des infos de l'image (nom, extension, type, taille)
             $nomImage = basename($_FILES['cover']['name']);
-            $extension = strrchr($_FILES['cover']['name'],'.');
-            $mimeType = $_FILES['cover']['type'];
-            $size = filesize($_FILES['cover']['tmp_name']);
-
+            $extension = strtolower((string) strrchr($_FILES['cover']['name'], '.'));
+            $mimeType = detectUploadedMimeType($_FILES['cover']['tmp_name'], $_FILES['cover']['type']);
+            $size = (int) filesize($_FILES['cover']['tmp_name']);
 
             $dossier = "../images/";
             $errImg = 0;
 
-            // vérification des données de l'image
+            $extensionsAcceptees = ['.jpg', '.jpeg', '.png', '.gif'];
+            $mimeTypesAcceptes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
 
-            $extensionsAcceptees = ['.jpg','.jpeg','.png','.gif'];
-            if(!in_array($extension,$extensionsAcceptees))
-            {
+            if (!in_array($extension, $extensionsAcceptees, true)) {
                 $errImg = 5;
-            }
-
-            // vérification du type MIME (type de fichier)
-            $mimeTypesAcceptes = ['image/jpeg','image/jpg','image/png','image/gif'];
-            if(!in_array($mimeType,$mimeTypesAcceptes))
-            {
+            } elseif (!in_array($mimeType, $mimeTypesAcceptes, true)) {
                 $errImg = 6;
-            }
-
-            // vérification de la taille de l'image (en kilooctets)
-            $tailleMax = 1000000;
-            if($size > $tailleMax)
-            {
+            } elseif ($size <= 0) {
+                $errImg = 4;
+            } elseif ($size > UPLOAD_MAX_BYTES) {
                 $errImg = 7;
             }
 
@@ -133,14 +118,14 @@ if(isset($_POST['nom']))
                         ":img"=>$uniqnomSsafe,
                         ":myid"=>$id
                     ]);
-                       if($extension == ".jpg")
-                       {
-                        header("LOCATION:redim.php?image=".$uniqnomSsafe."&update=".$id);
-                        exit();
-                       }elseif($extension == ".png"){
-                        header("LOCATION:redimpng.php?image=".$uniqnomSsafe."&update=".$id);
-                        exit();
+                       $extensionLower = strtolower($extension);
+                       if (in_array($extensionLower, ['.jpg', '.jpeg', '.png'], true)) {
+                           header('LOCATION:resizeCover.php?image=' . urlencode($uniqnomSsafe) . '&update=' . (int) $id);
+                           exit();
                        }
+
+                       header('LOCATION:products.php?update=' . (int) $id);
+                       exit();
 
                 }else{
                     // il y a eu un problème au niveau du déplacement de l'image donc erreur avec indication

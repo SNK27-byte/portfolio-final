@@ -1,11 +1,7 @@
 <?php
-    // cerbère
-    session_start();
-    if(!isset($_SESSION['login']))
-    {
-        header("LOCATION:index.php");
-        exit();
-    }
+<?php
+require __DIR__ . '/includes/auth.php';
+require __DIR__ . '/includes/upload-limits.php';
 
     // vérification de la présence de l'id
     if(!isset($_GET['id']) && !is_numeric($_GET['id']))
@@ -35,38 +31,23 @@
     {
          // récup des infos de l'image (nom, extension, type, taille)
             $nomImage = basename($_FILES['fichier']['name']);
-            $extension = strrchr($_FILES['fichier']['name'],'.');
-            $mimeType = $_FILES['fichier']['type'];
-            $size = filesize($_FILES['fichier']['tmp_name']);
+            $extension = strtolower((string) strrchr($_FILES['fichier']['name'], '.'));
+            $mimeType = detectUploadedMimeType($_FILES['fichier']['tmp_name'], $_FILES['fichier']['type']);
+            $size = (int) filesize($_FILES['fichier']['tmp_name']);
 
-            // le dossier de destination (attention au dernier /)
             $dossier = "../images/";
-            // initialisation de $errImg à 0 (pas d'erreur)
             $errImg = 0;
 
-            // vérification des données de l'image
-            // vérification de l'extension
-            //création d'un tableau des extensions acceptées
-            $extensionsAcceptees = ['.jpg','.jpeg','.png','.gif'];
-            // in_array vérifie si l'extension ($extension) est dans le tableau ($extensionsAcceptees)
-            // ! => négation (si l'extension n'est pas dans le tableau, alors on peut pas l'uploader => $erreur)
-            if(!in_array($extension,$extensionsAcceptees))
-            {
+            $extensionsAcceptees = ['.jpg', '.jpeg', '.png', '.gif'];
+            $mimeTypesAcceptes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+
+            if (!in_array($extension, $extensionsAcceptees, true)) {
                 $errImg = 5;
-            }
-
-            // vérification du type MIME (type de fichier)
-            $mimeTypesAcceptes = ['image/jpeg','image/jpg','image/png','image/gif'];
-            if(!in_array($mimeType,$mimeTypesAcceptes))
-            {
+            } elseif (!in_array($mimeType, $mimeTypesAcceptes, true)) {
                 $errImg = 6;
-            }
-
-            // vérification de la taille de l'image (en kilooctets)
-            // taille max 1Mo
-            $tailleMax = 1000000;
-            if($size > $tailleMax)
-            {
+            } elseif ($size <= 0) {
+                $errImg = 4;
+            } elseif ($size > UPLOAD_MAX_BYTES) {
                 $errImg = 7;
             }
 

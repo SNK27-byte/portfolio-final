@@ -52,13 +52,18 @@ include("partials/nav.php");
                     <?php
                     if(isset($_GET['errorImg']))
                     {
-                        echo "<div class='alert alert-danger'>Une erreur est survenue au niveau de l'image(code erreur: ".$_GET['errorImg'].")</div>";
+                        require __DIR__ . '/includes/upload-limits.php';
+                        $errorImg = (int) $_GET['errorImg'];
+                        $message = uploadErrorMessage($errorImg);
+                        if ($errorImg === 7 && isset($_GET['size']) && is_numeric($_GET['size'])) {
+                            $message .= ' Taille envoyée : ' . formatBytes((int) $_GET['size']) . '.';
+                        }
+                        echo "<div class='alert alert-danger'>{$message}</div>";
                     }
                     ?>               
                     <div class="form-group my-3">
                         <label for="fichier">Image</label>
-                        <input type="hidden" name="MAX_FILE_SIZE" value="1000000">
-                        <input type="file" id="fichier" name="fichier" class="form-control">
+                        <input type="file" id="fichier" name="fichier" class="form-control" accept="image/jpeg,image/png,image/gif,.jpg,.jpeg,.png,.gif">
                     </div>
                     <div class="form-group">
                         <input type="submit" value="Ajouter" class="btn btn-success">
