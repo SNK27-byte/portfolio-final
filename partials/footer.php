@@ -19,8 +19,25 @@
                 <ion-icon name="mail-outline"></ion-icon>
                 <span>Mail</span>
             </a>
+            <a href="mentions-legales.php" class="site-footer__social site-footer__social--legal" id="legal-open">
+                <ion-icon name="document-text-outline"></ion-icon>
+                <span>Mentions légales</span>
+            </a>
         </nav>
 
         <p class="site-footer__copy">&copy; <?php echo date('Y'); ?> Paul Leroy. Tous droits réservés.</p>
     </div>
 </footer>
+<script>
+    (function () {
+        const legalLink = document.getElementById('legal-open');
+        if (!legalLink) {
+            return;
+        }
+
+        legalLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            window.open(legalLink.getAttribute('href'), '_blank');
+        });
+    })();
+</script>

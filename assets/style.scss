@@ -438,6 +438,10 @@ span,
         border-radius: 0;
     }
 
+    .works-carousel__slide--clickable {
+        cursor: pointer;
+    }
+
     .works-carousel__placeholder {
         width: 100%;
         height: 100%;
@@ -565,6 +569,124 @@ span,
             }
         }
     }
+}
+
+.work-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+
+    &.is-open {
+        pointer-events: all;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    &__overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+    }
+
+    &__dialog {
+        position: relative;
+        width: min(960px, 100%);
+        max-height: min(560px, calc(100vh - 48px));
+        background: #fff;
+        border-radius: 24px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+        overflow: hidden;
+    }
+
+    &__close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.92);
+        color: #2c2c2c;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+
+        ion-icon {
+            font-size: 22px;
+        }
+    }
+
+    &__layout {
+        display: flex;
+        min-height: min(560px, calc(100vh - 48px));
+    }
+
+    &__image-wrap {
+        flex: 0 0 50%;
+        margin: 0;
+        background: #111;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    }
+
+    &__content {
+        flex: 1;
+        min-width: 0;
+        padding: 40px 36px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-sizing: border-box;
+    }
+
+    &__title {
+        margin: 0;
+        padding-right: 28px;
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        font-weight: 700;
+        line-height: 1.15;
+        color: #2c2c2c;
+    }
+
+    &__date {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #888;
+    }
+
+    &__description {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: #444;
+        white-space: pre-line;
+    }
+}
+
+body.work-sheet-open {
+    overflow: hidden;
 }
 
 .presentation-section {
@@ -1118,12 +1240,209 @@ span,
             color: #fff;
             border-color: transparent;
         }
+
+        &--legal:hover {
+            background: #2c2c2c;
+            color: #fff;
+            border-color: transparent;
+        }
     }
 
     &__copy {
         font-size: 12px;
         color: rgba(0, 0, 0, 0.4);
         letter-spacing: 0.02em;
+    }
+}
+
+.legal-page {
+    min-height: 100vh;
+    background: #f5f3ef;
+    color: #2c2c2c;
+    overflow-x: hidden;
+
+    &__header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 20px 24px;
+        background: rgba(245, 243, 239, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        text-align: center;
+    }
+
+    &__back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        color: #2c2c2c;
+
+        &:hover {
+            color: #666;
+        }
+    }
+
+    &__main {
+        width: 100%;
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 40px 32px 80px;
+        box-sizing: border-box;
+    }
+}
+
+.legal-content {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    text-align: center;
+
+    h1 {
+        width: 100%;
+        font-size: clamp(1.5rem, 3.5vw, 2rem);
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+    }
+
+    h2 {
+        width: 100%;
+        font-size: clamp(1rem, 2.5vw, 1.15rem);
+        font-weight: 600;
+        line-height: 1.35;
+        margin-top: 8px;
+    }
+
+    p,
+    li {
+        width: 100%;
+        max-width: 100%;
+        font-size: clamp(0.875rem, 2vw, 0.9375rem);
+        line-height: 1.7;
+        color: #3a3a3a;
+    }
+
+    ol,
+    ul {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        padding-left: 0;
+        list-style-position: inside;
+        text-align: center;
+    }
+
+    a {
+        color: #2c2c2c;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        word-break: break-word;
+
+        &:hover {
+            color: #666;
+        }
+    }
+}
+
+@media (max-width: 1024px) {
+    .legal-page {
+        &__header {
+            padding: 16px 28px;
+        }
+
+        &__main {
+            padding: 32px 28px 64px;
+        }
+    }
+
+    .legal-content {
+        gap: 22px;
+        padding: 0 4px;
+
+        h1 {
+            font-size: 1.45rem;
+        }
+
+        h2 {
+            font-size: 1rem;
+        }
+
+        p,
+        li {
+            font-size: 0.875rem;
+            line-height: 1.65;
+            padding: 0 6px;
+            box-sizing: border-box;
+        }
+
+        ol,
+        ul {
+            max-width: 100%;
+            gap: 8px;
+            padding: 0 6px;
+            box-sizing: border-box;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .legal-page {
+        &__header {
+            padding: 16px 24px;
+            padding-left: max(24px, env(safe-area-inset-left));
+            padding-right: max(24px, env(safe-area-inset-right));
+        }
+
+        &__back {
+            font-size: 13px;
+        }
+
+        &__main {
+            padding: 28px 24px 56px;
+            padding-left: max(24px, env(safe-area-inset-left));
+            padding-right: max(24px, env(safe-area-inset-right));
+        }
+    }
+
+    .legal-content {
+        gap: 18px;
+        padding: 0 8px;
+
+        h1 {
+            font-size: 1.25rem;
+            padding: 0 4px;
+        }
+
+        h2 {
+            font-size: 0.92rem;
+            padding: 0 4px;
+        }
+
+        p,
+        li {
+            font-size: 0.8125rem;
+            line-height: 1.65;
+            padding: 0 8px;
+        }
+
+        ol,
+        ul {
+            max-width: 100%;
+            gap: 8px;
+            padding: 0 8px;
+        }
     }
 }
 
@@ -1204,12 +1523,12 @@ span,
 
     .app {
         a {
-            width: 64px;
+            width: 72px;
         }
 
         img {
-            width: 64px;
-            height: 64px;
+            width: 72px;
+            height: 72px;
         }
 
         &__label {
@@ -1485,25 +1804,25 @@ span,
     }
 
     .apps-grid {
-        gap: 28px 36px;
-        margin: 28px auto 40px;
-        padding: 0;
-        max-width: 320px;
+        gap: 40px 48px;
+        margin: 48px auto 48px;
+        padding: 0 20px;
+        max-width: 650px;
         width: 100%;
     }
 
     .app {
         a {
-            width: 56px;
+            width: 72px;
         }
 
         img {
-            width: 56px;
-            height: 56px;
+            width: 72px;
+            height: 72px;
         }
 
         &__label {
-            font-size: 10px;
+            font-size: 11px;
             white-space: normal;
             word-break: break-word;
             opacity: 1;
@@ -1548,12 +1867,12 @@ span,
         justify-content: center;
 
         img {
-            width: 14px;
-            height: 14px;
+            width: 20px;
+            height: 20px;
         }
 
         span {
-            font-size: 8px;
+            font-size: 11px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -1684,6 +2003,29 @@ span,
 
     .app-section .works-carousel__dot.is-active {
         width: 18px;
+    }
+
+    .work-sheet {
+        padding: 12px;
+
+        &__dialog {
+            max-height: calc(100vh - 24px);
+            border-radius: 18px;
+        }
+
+        &__layout {
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        &__image-wrap {
+            flex: 0 0 auto;
+            max-height: 45vh;
+        }
+
+        &__content {
+            padding: 24px 20px 28px;
+        }
     }
 
     .presentation-section {
@@ -2199,19 +2541,11 @@ span,
 @media (max-width: 1024px) {
     body.is-skills-slide {
         .site-nav {
-            justify-content: flex-end;
-        }
-
-        .site-nav__logo {
-            display: none;
-        }
-
-        .site-nav__burger {
-            margin-left: auto;
+            justify-content: space-between;
         }
 
         .sidebar__brand {
-            display: flex;
+            display: none;
         }
     }
 
@@ -2222,7 +2556,7 @@ span,
 
         &__logo {
             gap: 6px;
-            font-size: 0.8rem;
+            font-size: 1rem;
             letter-spacing: -0.02em;
             flex: 0 1 auto;
             width: auto;
@@ -2233,8 +2567,8 @@ span,
             color: #2c2c2c;
 
             img {
-                width: 22px;
-                height: 22px;
+                width: 28px;
+                height: 28px;
                 flex-shrink: 0;
             }
 
@@ -2329,20 +2663,20 @@ span,
         align-items: center;
 
         &__logo {
-            gap: 4px;
+            gap: 10px;
             flex: 0 1 auto;
             width: auto;
             min-width: 0;
             max-width: calc(100% - 42px);
             overflow: hidden;
             align-items: center;
-            font-size: 0.58rem;
-            letter-spacing: -0.03em;
+            font-size: 1rem;
+            letter-spacing: -0.02em;
             color: #2c2c2c;
 
             img {
-                width: 16px;
-                height: 16px;
+                width: 28px;
+                height: 28px;
                 flex-shrink: 0;
             }
 
@@ -2415,13 +2749,13 @@ span,
         padding: 0 0.7rem;
 
         &__logo {
-            gap: 3px;
-            font-size: 0.52rem;
+            gap: 8px;
+            font-size: 0.9rem;
             max-width: calc(100% - 38px);
 
             img {
-                width: 14px;
-                height: 14px;
+                width: 24px;
+                height: 24px;
             }
         }
 

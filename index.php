@@ -64,6 +64,17 @@ if (!function_exists('portfolio_sort_works')) {
     }
 }
 
+if (!function_exists('portfolio_clean_text')) {
+    function portfolio_clean_text($value)
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        return html_entity_decode(trim((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+}
+
 if (!function_exists('build_portfolio_apps')) {
     function build_portfolio_apps(PDO $bdd)
     {
@@ -84,7 +95,7 @@ if (!function_exists('build_portfolio_apps')) {
 
         $categories = $bdd->query('SELECT id, name, image FROM categories ORDER BY name ASC')->fetchAll(PDO::FETCH_ASSOC);
         $products = $bdd->query(
-            'SELECT p.id, p.name, p.cover, p.category
+            'SELECT p.id, p.name, p.date, p.description, p.cover, p.category
              FROM products p
              ORDER BY p.date DESC, p.id DESC'
         )->fetchAll(PDO::FETCH_ASSOC);
@@ -111,8 +122,12 @@ if (!function_exists('build_portfolio_apps')) {
             foreach ($productsByCategory[$category['id']] as $product) {
                 if (!empty($product['cover'])) {
                     $works[] = array(
+                        'id' => (int) $product['id'],
                         'src' => 'images/' . $product['cover'],
                         'alt' => $product['name'] . ' - Paul Leroy',
+                        'title' => $product['name'],
+                        'date' => $product['date'],
+                        'description' => portfolio_clean_text($product['description']),
                     );
                 }
 
@@ -123,8 +138,12 @@ if (!function_exists('build_portfolio_apps')) {
                         }
 
                         $works[] = array(
+                            'id' => (int) $product['id'],
                             'src' => 'images/' . $fichier,
                             'alt' => $product['name'] . ' - Paul Leroy',
+                            'title' => $product['name'],
+                            'date' => $product['date'],
+                            'description' => portfolio_clean_text($product['description']),
                         );
                     }
                 }
@@ -172,8 +191,7 @@ if ($portfolioAppsJson === false || $portfolioAppsJson === '[]') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="icon" href="images/LogoLP.png" type="image/png">
-    <link rel="apple-touch-icon" href="images/LogoLP.png">
+    <?php include __DIR__ . '/partials/head-icons.php'; ?>
     <link rel="stylesheet" href="build/style.css">
     <title>Portfolio</title>
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
@@ -306,6 +324,25 @@ if ($portfolioAppsJson === false || $portfolioAppsJson === '[]') {
         </div>
     </section>
 
+    <div class="work-sheet" id="work-sheet" aria-hidden="true">
+        <div class="work-sheet__overlay" id="work-sheet-overlay"></div>
+        <div class="work-sheet__dialog" role="dialog" aria-modal="true" aria-labelledby="work-sheet-title">
+            <button type="button" class="work-sheet__close" id="work-sheet-close" aria-label="Fermer">
+                <ion-icon name="close-outline"></ion-icon>
+            </button>
+            <div class="work-sheet__layout">
+                <figure class="work-sheet__image-wrap">
+                    <img id="work-sheet-image" src="" alt="">
+                </figure>
+                <div class="work-sheet__content">
+                    <h2 class="work-sheet__title" id="work-sheet-title"></h2>
+                    <p class="work-sheet__date" id="work-sheet-date"></p>
+                    <div class="work-sheet__description" id="work-sheet-description"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <section id="contact" class="contact-section">
         <aside class="contact-sidebar">
             <p class="contact-sidebar__title">Mes réseaux</p>
@@ -379,6 +416,101 @@ if ($portfolioAppsJson === false || $portfolioAppsJson === '[]') {
         const slides = ['accueil', 'presentation', 'app', 'contact'].map((id) => document.getElementById(id));
         let carouselIndex = 0;
         let isSlideScrolling = false;
+        let currentWorks = [];
+
+        function formatWorkDate(dateValue) {
+            if (!dateValue) {
+                return '';
+            }
+            const parts = String(dateValue).split('-');
+            if (parts.length === 3) {
+                return parts[0] + '-' + parts[1] + '-' + parts[2];
+            }
+            return dateValue;
+        }
+
+        const workSheet = document.getElementById('work-sheet');
+        const workSheetOverlay = document.getElementById('work-sheet-overlay');
+        const workSheetClose = document.getElementById('work-sheet-close');
+        const workSheetImage = document.getElementById('work-sheet-image');
+        const workSheetTitle = document.getElementById('work-sheet-title');
+        const workSheetDate = document.getElementById('work-sheet-date');
+        const workSheetDescription = document.getElementById('work-sheet-description');
+
+        function openWorkSheet(work) {
+            if (!work || !workSheet || !work.src) {
+                return;
+            }
+
+            const description = (work.description || '').trim();
+
+            workSheetImage.src = work.src;
+            workSheetImage.alt = work.title || work.alt || 'Oeuvre';
+            workSheetTitle.textContent = work.title || work.alt || 'Oeuvre';
+            workSheetDate.textContent = formatWorkDate(work.date);
+            workSheetDescription.textContent = description || 'Aucune description disponible pour cette oeuvre.';
+
+            workSheet.classList.add('is-open');
+            workSheet.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('work-sheet-open');
+        }
+
+        function escapeWorkData(work) {
+            return JSON.stringify(work)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function getWorkFromSlide(slide) {
+            const raw = slide.getAttribute('data-work');
+            if (!raw) {
+                return null;
+            }
+
+            try {
+                return JSON.parse(raw);
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function closeWorkSheet() {
+            if (!workSheet) {
+                return;
+            }
+
+            workSheet.classList.remove('is-open');
+            workSheet.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('work-sheet-open');
+        }
+
+        if (workSheetOverlay) {
+            workSheetOverlay.addEventListener('click', closeWorkSheet);
+        }
+        if (workSheetClose) {
+            workSheetClose.addEventListener('click', closeWorkSheet);
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && workSheet && workSheet.classList.contains('is-open')) {
+                closeWorkSheet();
+            }
+        });
+
+        function bindWorkSheetClicks() {
+            if (!carouselTrack) {
+                return;
+            }
+
+            carouselTrack.querySelectorAll('.works-carousel__slide').forEach((slide) => {
+                slide.addEventListener('click', () => {
+                    const work = getWorkFromSlide(slide);
+                    if (work) {
+                        openWorkSheet(work);
+                    }
+                });
+            });
+        }
 
         const hasCarousel = (id) => Boolean(apps[id] && apps[id].works && apps[id].works.length);
         const defaultAppId = Object.keys(apps).find((id) => hasCarousel(id)) || null;
@@ -598,6 +730,7 @@ if ($portfolioAppsJson === false || $portfolioAppsJson === '[]') {
             if (!hasWorks) {
                 carouselTrack.innerHTML = '';
                 carouselDots.innerHTML = '';
+                currentWorks = [];
                 if (carouselViewport) {
                     carouselViewport.style.width = '';
                     carouselViewport.style.height = '';
@@ -608,13 +741,17 @@ if ($portfolioAppsJson === false || $portfolioAppsJson === '[]') {
             }
 
             carouselIndex = 0;
-            carouselTrack.innerHTML = works.map((work) => `
-                <div class="works-carousel__slide">
+            currentWorks = works.slice();
+            carouselTrack.innerHTML = works.map((work) => {
+                const workData = escapeWorkData(work);
+                return `
+                <div class="works-carousel__slide works-carousel__slide--clickable" data-work="${workData}">
                     ${work.src
                         ? `<img src="${work.src}" alt="${work.alt}">`
                         : `<div class="works-carousel__placeholder">${work.alt}</div>`}
                 </div>
-            `).join('');
+            `;
+            }).join('');
 
             carouselDots.innerHTML = works.map((_, index) => `
                 <button type="button" class="works-carousel__dot${index === 0 ? ' is-active' : ''}" aria-label="Image ${index + 1}" data-index="${index}"></button>
@@ -622,6 +759,7 @@ if ($portfolioAppsJson === false || $portfolioAppsJson === '[]') {
 
             updateCarousel();
             fitCarouselViewport();
+            bindWorkSheetClicks();
         }
 
         function updateCarousel() {
